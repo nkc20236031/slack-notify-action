@@ -61,9 +61,10 @@ jobs:
           curl -X POST -H 'Content-type: application/json' \
           --data "{
             \"text\": \"$STATE_EMOJI *PR Review*\\n\
-*Repo:* ${{ inputs.repo }}\\n\
-*PR:* <${{ inputs.pr_url }}|${{ inputs.pr_title }}>\\n\
-*Reviewer:* ${{ inputs.reviewer }} $MENTION\\n\
-*State:* ${{ inputs.review_state }}\"
+            *Repo:* ${{ inputs.repo }}\\n\
+            *PR:* <${{ inputs.pr_url }}|${{ inputs.pr_title }}>\\n\
+            *Reviewer:* ${{ inputs.reviewer }} $MENTION\\n\
+            *State:* ${{ inputs.review_state }}\"
           }" \
           $SLACK_WEBHOOK_URL
+

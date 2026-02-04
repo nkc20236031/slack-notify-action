@@ -28,7 +28,8 @@ jobs:
     steps:
       - name: Set datetime
         run: |
-          echo "date_time=$(date '+%Y/%m/%d %H:%M')" >> $GITHUB_ENV
+          export TZ=Asia/Tokyo
+          echo "date_time=$(date '+%Y-%m-%d %H:%M:%S JST')" >> $GITHUB_ENV
 
       - name: Convert GitHub user to Slack mention
         id: usermap

@@ -3,23 +3,22 @@ name: Notify Slack - PR Created
 on:
   workflow_call:
     inputs:
-      repo:
-        required: true
-        type: string
-      pr_number:
-        required: true
-        type: number
       title:
         required: true
         type: string
       url:
         required: true
         type: string
-      author:
+      pr_number:
+        required: true
+        type: number
+      author_github:
         required: true
         type: string
     secrets:
       SLACK_WEBHOOK_URL:
+        required: true
+      SLACK_USER_MAP_JSON:
         required: true
 
 jobs:
@@ -29,17 +28,27 @@ jobs:
     steps:
       - name: Set datetime
         run: |
-          export TZ=Asia/Tokyo
-          echo "date_time=$(date '+%Y-%m-%d %H:%M:%S JST')" >> $GITHUB_ENV
+          echo "date_time=$(date '+%Y/%m/%d %H:%M')" >> $GITHUB_ENV
+
+      - name: Convert GitHub user to Slack mention
+        id: usermap
+        run: |
+          slack_id=$(echo '${{ secrets.SLACK_USER_MAP_JSON }}' \
+            | jq -r --arg user "${{ inputs.author_github }}" '.[$user] // empty')
+
+          if [ -n "$slack_id" ]; then
+            echo "author_slack=<@$slack_id>" >> $GITHUB_ENV
+          else
+            echo "author_slack=${{ inputs.author_github }}" >> $GITHUB_ENV
+          fi
 
       - name: Build Slack payload (PR Created)
         run: |
           payload=$(jq -n \
-            --arg reviewer_mentions "${REVIEWER_SLACK_MENTIONS:-レビュワー未指定}" \
             --arg title "${{ inputs.title }}" \
-            --arg author_slack "${{ inputs.author }}" \
             --arg pr_url "${{ inputs.url }}" \
             --arg pr_number "${{ inputs.pr_number }}" \
+            --arg author "$author_slack" \
             --arg date_time "${{ env.date_time }}" \
           '{
             attachments: [
@@ -50,7 +59,7 @@ jobs:
                     type: "section",
                     text: {
                       type: "mrkdwn",
-                      text: ($reviewer_mentions + "\nプルリクエストを作成しました！")
+                      text: ($author + "\nプルリクエストを作成しました！")
                     }
                   },
                   {
@@ -65,7 +74,7 @@ jobs:
                     fields: [
                       { type: "mrkdwn", text: "*作成者*" },
                       { type: "mrkdwn", text: "*PR番号*" },
-                      { type: "mrkdwn", text: $author_slack },
+                      { type: "mrkdwn", text: $author },
                       { type: "mrkdwn", text: "<\($pr_url)|#\($pr_number)>" }
                     ]
                   },
@@ -97,6 +106,7 @@ jobs:
               }
             ]
           }')
+
           {
             echo "payload<<EOF"
             echo "$payload"

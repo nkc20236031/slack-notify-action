@@ -32,83 +32,77 @@ jobs:
           echo "date_time=$(date '+%Y/%m/%d %H:%M')" >> $GITHUB_ENV
 
       - name: Build Slack payload (PR Created)
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           payload=$(jq -n \
             --arg reviewer_mentions "${REVIEWER_SLACK_MENTIONS:-レビュワー未指定}" \
-            --arg title "${{ github.event.pull_request.title || 'タイトル' }}" \
-            --arg author_slack "<@${SLACK_USER_IDS:-}>" \
-            --arg pr_url "${{ github.event.pull_request.html_url || '' }}" \
-            --arg pr_number "${{ github.event.pull_request.number || '9999' }}" \
-            --arg body "${{ github.event.pull_request.body || '' }}" \
-            --arg date_time "${date_time}" \
-            '
-            {
-              "attachments": [
-                {
-                  "color": "e82a87",
-                  "blocks": [
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": "\($reviewer_mentions)\nプルリクエストを作成しました！"
-                      }
-                    },
-                    {
-                      "type": "header",
-                      "text": {
-                        "type": "plain_text",
-                        "text": \($title)
-                      }
-                    },
-                    {
-                      "type": "section",
-                      "fields": [
-                        { "type": "mrkdwn", "text": "*作成者*" },
-                        { "type": "mrkdwn", "text": "*PR番号*" },
-                        { "type": "mrkdwn", "text": \($author_slack) },
-                        { "type": "mrkdwn", "text": "<\($pr_url)|#\($pr_number)>" }
-                      ]
-                    },
-                    {
-                      "type": "section",
-                      "text": {
-                        "type": "mrkdwn",
-                        "text": \($body)
-                      }
-                    },
-                    {
-                      "type": "context",
-                      "elements": [
-                        {
-                          "type": "mrkdwn",
-                          "text": "作成日：\($date_time)"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "actions",
-                      "elements": [
-                        {
-                          "type": "button",
-                          "text": {
-                            "type": "plain_text",
-                            "text": "プルリクエストを開く",
-                            "emoji": true
-                          },
-                          "url": \($pr_url),
-                          "style": "primary"
-                        }
-                      ]
+            --arg title "${{ inputs.title }}" \
+            --arg author_slack "${{ inputs.author }}" \
+            --arg pr_url "${{ inputs.url }}" \
+            --arg pr_number "${{ inputs.pr_number }}" \
+            --arg body "" \
+            --arg date_time "${{ env.date_time }}" \
+          '{
+            attachments: [
+              {
+                color: "e82a87",
+                blocks: [
+                  {
+                    type: "section",
+                    text: {
+                      type: "mrkdwn",
+                      text: ($reviewer_mentions + "\nプルリクエストを作成しました！")
                     }
-                  ]
-                }
-              ]
-            }'
-          )
+                  },
+                  {
+                    type: "header",
+                    text: {
+                      type: "plain_text",
+                      text: $title
+                    }
+                  },
+                  {
+                    type: "section",
+                    fields: [
+                      { type: "mrkdwn", text: "*作成者*" },
+                      { type: "mrkdwn", text: "*PR番号*" },
+                      { type: "mrkdwn", text: $author_slack },
+                      { type: "mrkdwn", text: "<\($pr_url)|#\($pr_number)>" }
+                    ]
+                  },
+                  {
+                    type: "context",
+                    elements: [
+                      {
+                        type: "mrkdwn",
+                        text: ("作成日：" + $date_time)
+                      }
+                    ]
+                  },
+                  {
+                    type: "actions",
+                    elements: [
+                      {
+                        type: "button",
+                        text: {
+                          type: "plain_text",
+                          text: "プルリクエストを開く",
+                          emoji: true
+                        },
+                        url: $pr_url,
+                        style: "primary"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }')
+          echo "payload=$payload" >> $GITHUB_ENV
 
+      - name: Send to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
           curl -X POST \
             -H "Content-Type: application/json" \
             -d "$payload" \

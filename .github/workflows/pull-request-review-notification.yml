@@ -1,0 +1,69 @@
+name: Slack PR Review Notification
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        required: true
+        type: string
+      pr_number:
+        required: true
+        type: string
+      pr_title:
+        required: true
+        type: string
+      pr_url:
+        required: true
+        type: string
+      reviewer:
+        required: true
+        type: string
+      review_state:
+        required: true
+        type: string
+
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: true
+      SLACK_USER_MAP_JSON:
+        required: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create slack_user_map.json
+        run: |
+          echo '${{ secrets.SLACK_USER_MAP_JSON }}' > slack_user_map.json
+
+      - name: Resolve Slack user
+        id: user
+        run: |
+          SLACK_USER=$(jq -r --arg gh "${{ inputs.reviewer }}" '.[$gh] // ""' slack_user_map.json)
+          echo "slack_user=$SLACK_USER" >> $GITHUB_OUTPUT
+
+      - name: Send Review notification
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          STATE_EMOJI="💬"
+          if [ "${{ inputs.review_state }}" = "approved" ]; then
+            STATE_EMOJI="✅"
+          elif [ "${{ inputs.review_state }}" = "changes_requested" ]; then
+            STATE_EMOJI="❌"
+          fi
+
+          MENTION=""
+          if [ -n "${{ steps.user.outputs.slack_user }}" ]; then
+            MENTION="<@${{ steps.user.outputs.slack_user }}>"
+          fi
+
+          curl -X POST -H 'Content-type: application/json' \
+          --data "{
+            \"text\": \"$STATE_EMOJI *PR Review*\\n\
+*Repo:* ${{ inputs.repo }}\\n\
+*PR:* <${{ inputs.pr_url }}|${{ inputs.pr_title }}>\\n\
+*Reviewer:* ${{ inputs.reviewer }} $MENTION\\n\
+*State:* ${{ inputs.review_state }}\"
+          }" \
+          $SLACK_WEBHOOK_URL

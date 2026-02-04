@@ -1,0 +1,58 @@
+name: Slack PR Notification
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        required: true
+        type: string
+      pr_number:
+        required: true
+        type: string
+      pr_title:
+        required: true
+        type: string
+      pr_url:
+        required: true
+        type: string
+      author:
+        required: true
+        type: string
+
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: true
+      SLACK_USER_MAP_JSON:
+        required: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create slack_user_map.json
+        run: |
+          echo '${{ secrets.SLACK_USER_MAP_JSON }}' > slack_user_map.json
+
+      - name: Resolve Slack user
+        id: user
+        run: |
+          SLACK_USER=$(jq -r --arg gh "${{ inputs.author }}" '.[$gh] // ""' slack_user_map.json)
+          echo "slack_user=$SLACK_USER" >> $GITHUB_OUTPUT
+
+      - name: Send PR notification
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          MENTION=""
+          if [ -n "${{ steps.user.outputs.slack_user }}" ]; then
+            MENTION="<@${{ steps.user.outputs.slack_user }}>"
+          fi
+
+          curl -X POST -H 'Content-type: application/json' \
+          --data "{
+            \"text\": \"📢 *New Pull Request*\\n\
+*Repo:* ${{ inputs.repo }}\\n\
+*Title:* <${{ inputs.pr_url }}|${{ inputs.pr_title }}>\\n\
+*Author:* ${{ inputs.author }} $MENTION\"
+          }" \
+          $SLACK_WEBHOOK_URL

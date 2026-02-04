@@ -22,8 +22,6 @@ on:
     secrets:
       SLACK_WEBHOOK_URL:
         required: true
-      SLACK_USER_MAP_JSON:
-        required: true
 
 jobs:
   notify:

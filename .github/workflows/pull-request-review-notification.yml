@@ -27,8 +27,6 @@ on:
     secrets:
       SLACK_WEBHOOK_URL:
         required: true
-      SLACK_USER_MAP_JSON:
-        required: true
 
 jobs:
   notify:
@@ -135,4 +133,5 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$payload" \
             "$SLACK_WEBHOOK_URL"
+
 

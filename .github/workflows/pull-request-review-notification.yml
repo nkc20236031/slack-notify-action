@@ -2,6 +2,22 @@ name: Notify Slack - PR Review
 
 on:
   workflow_call:
+    inputs:
+      repo:
+        required: true
+        type: string
+      pr_number:
+        required: true
+        type: number
+      title:
+        required: true
+        type: string
+      url:
+        required: true
+        type: string
+      author:
+        required: true
+        type: string
     secrets:
       SLACK_WEBHOOK_URL:
         required: true
@@ -109,3 +125,4 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$payload" \
             "$SLACK_WEBHOOK_URL"
+

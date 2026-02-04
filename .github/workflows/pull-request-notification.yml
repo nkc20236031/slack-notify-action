@@ -51,8 +51,8 @@ jobs:
           curl -X POST -H 'Content-type: application/json' \
           --data "{
             \"text\": \"📢 *New Pull Request*\\n\
-*Repo:* ${{ inputs.repo }}\\n\
-*Title:* <${{ inputs.pr_url }}|${{ inputs.pr_title }}>\\n\
-*Author:* ${{ inputs.author }} $MENTION\"
+            *Repo:* ${{ inputs.repo }}\\n\
+            *Title:* <${{ inputs.pr_url }}|${{ inputs.pr_title }}>\\n\
+            *Author:* ${{ inputs.author }} $MENTION\"
           }" \
           $SLACK_WEBHOOK_URL

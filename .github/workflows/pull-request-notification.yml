@@ -29,7 +29,8 @@ jobs:
     steps:
       - name: Set datetime
         run: |
-          echo "date_time=$(date '+%Y/%m/%d %H:%M')" >> $GITHUB_ENV
+          export TZ=Asia/Tokyo
+          echo "date_time=$(date '+%Y-%m-%d %H:%M:%S JST')" >> $GITHUB_ENV
 
       - name: Build Slack payload (PR Created)
         run: |

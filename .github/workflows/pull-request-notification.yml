@@ -39,7 +39,6 @@ jobs:
             --arg author_slack "${{ inputs.author }}" \
             --arg pr_url "${{ inputs.url }}" \
             --arg pr_number "${{ inputs.pr_number }}" \
-            --arg body "" \
             --arg date_time "${{ env.date_time }}" \
           '{
             attachments: [
@@ -97,7 +96,11 @@ jobs:
               }
             ]
           }')
-          echo "payload=$payload" >> $GITHUB_ENV
+          {
+            echo "payload<<EOF"
+            echo "$payload"
+            echo "EOF"
+          } >> $GITHUB_ENV
 
       - name: Send to Slack
         env:

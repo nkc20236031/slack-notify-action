@@ -15,9 +15,6 @@ jobs:
         run: |
           echo "date_time=$(date '+%Y/%m/%d %H:%M')" >> $GITHUB_ENV
 
-      # ※ 既存実装を想定（SlackユーザーID解決など）
-      # REVIEWER_SLACK_MENTIONS / SLACK_USER_IDS が
-      # すでに env に入っている前提
       - name: Build Slack payload (PR Created)
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -18,8 +18,6 @@ on:
     secrets:
       SLACK_WEBHOOK_URL:
         required: true
-      SLACK_USER_MAP_JSON:
-        required: true
 
 jobs:
   notify:
@@ -35,12 +33,12 @@ jobs:
         id: usermap
         run: |
           slack_id=$(echo '${{ secrets.SLACK_USER_MAP_JSON }}' \
-            | jq -r --arg user "${{ inputs.author_github }}" '.[$user] // empty')
+            | jq -r --arg user "${{ inputs.author }}" '.[$user] // empty')
 
           if [ -n "$slack_id" ]; then
             echo "author_slack=<@$slack_id>" >> $GITHUB_ENV
           else
-            echo "author_slack=${{ inputs.author_github }}" >> $GITHUB_ENV
+            echo "author_slack=${{ inputs.author }}" >> $GITHUB_ENV
           fi
 
       - name: Build Slack payload (PR Created)

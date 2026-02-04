@@ -1,27 +1,7 @@
-name: Slack PR Review Notification
+name: Notify Slack - PR Review
 
 on:
   workflow_call:
-    inputs:
-      repo:
-        required: true
-        type: string
-      pr_number:
-        required: true
-        type: string
-      pr_title:
-        required: true
-        type: string
-      pr_url:
-        required: true
-        type: string
-      reviewer:
-        required: true
-        type: string
-      review_state:
-        required: true
-        type: string
-
     secrets:
       SLACK_WEBHOOK_URL:
         required: true
@@ -29,42 +9,103 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Create slack_user_map.json
+      - name: Set datetime
         run: |
-          echo '${{ secrets.SLACK_USER_MAP_JSON }}' > slack_user_map.json
+          echo "date_time=$(date '+%Y/%m/%d %H:%M')" >> $GITHUB_ENV
 
-      - name: Resolve Slack user
-        id: user
-        run: |
-          SLACK_USER=$(jq -r --arg gh "${{ inputs.reviewer }}" '.[$gh] // ""' slack_user_map.json)
-          echo "slack_user=$SLACK_USER" >> $GITHUB_OUTPUT
-
-      - name: Send Review notification
+      - name: Build Slack payload (PR Review)
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          STATE_EMOJI="💬"
-          if [ "${{ inputs.review_state }}" = "approved" ]; then
-            STATE_EMOJI="✅"
-          elif [ "${{ inputs.review_state }}" = "changes_requested" ]; then
-            STATE_EMOJI="❌"
-          fi
+          payload=$(jq -n \
+            --arg color "${attachments_color:-#e82a87}" \
+            --arg reviewer "${reviewer_slack_user_id:-}" \
+            --arg reviewee "${reviewee_slack_user_id:-}" \
+            --arg status "${review_status_emoji:-} ${{ github.event.review.state }}" \
+            --arg pr_url "${{ github.event.pull_request.html_url || '' }}" \
+            --arg pr_number "${{ github.event.pull_request.number || '9999' }}" \
+            --arg body "${{ github.event.review.body || github.event.comment.body || '' }}" \
+            --arg review_url "${{ github.event.review.html_url || github.event.pull_request.html_url || '' }}" \
+            --arg date_time "${date_time}" \
+            '
+            {
+              "attachments": [
+                {
+                  "color": \($color),
+                  "blocks": [
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "コードレビューを行いました！",
+                        "emoji": true
+                      }
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        { "type": "mrkdwn", "text": "*レビュワー*" },
+                        { "type": "mrkdwn", "text": "*レビューイ*" },
+                        { "type": "mrkdwn", "text": \($reviewer) },
+                        { "type": "mrkdwn", "text": \($reviewee) }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        { "type": "mrkdwn", "text": "*状態*" },
+                        { "type": "mrkdwn", "text": "*PR番号*" },
+                        {
+                          "type": "plain_text",
+                          "text": \($status),
+                          "emoji": true
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "<\($pr_url)|#\($pr_number)>"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": \($body)
+                      }
+                    },
+                    {
+                      "type": "context",
+                      "elements": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "作成日：\($date_time)"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "レビューコメントを開く",
+                            "emoji": true
+                          },
+                          "url": \($review_url),
+                          "style": "primary"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }'
+          )
 
-          MENTION=""
-          if [ -n "${{ steps.user.outputs.slack_user }}" ]; then
-            MENTION="<@${{ steps.user.outputs.slack_user }}>"
-          fi
-
-          curl -X POST -H 'Content-type: application/json' \
-          --data "{
-            \"text\": \"$STATE_EMOJI *PR Review*\\n\
-            *Repo:* ${{ inputs.repo }}\\n\
-            *PR:* <${{ inputs.pr_url }}|${{ inputs.pr_title }}>\\n\
-            *Reviewer:* ${{ inputs.reviewer }} $MENTION\\n\
-            *State:* ${{ inputs.review_state }}\"
-          }" \
-          $SLACK_WEBHOOK_URL
-
-
-
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "$SLACK_WEBHOOK_URL"

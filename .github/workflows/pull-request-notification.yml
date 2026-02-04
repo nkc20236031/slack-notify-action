@@ -1,24 +1,7 @@
-name: Slack PR Notification
+name: Notify Slack - PR Created
 
 on:
   workflow_call:
-    inputs:
-      repo:
-        required: true
-        type: string
-      pr_number:
-        required: true
-        type: string
-      pr_title:
-        required: true
-        type: string
-      pr_url:
-        required: true
-        type: string
-      author:
-        required: true
-        type: string
-
     secrets:
       SLACK_WEBHOOK_URL:
         required: true
@@ -26,31 +9,94 @@ on:
 jobs:
   notify:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Create slack_user_map.json
+      - name: Set datetime
         run: |
-          echo '${{ secrets.SLACK_USER_MAP_JSON }}' > slack_user_map.json
+          echo "date_time=$(date '+%Y/%m/%d %H:%M')" >> $GITHUB_ENV
 
-      - name: Resolve Slack user
-        id: user
-        run: |
-          SLACK_USER=$(jq -r --arg gh "${{ inputs.author }}" '.[$gh] // ""' slack_user_map.json)
-          echo "slack_user=$SLACK_USER" >> $GITHUB_OUTPUT
-
-      - name: Send PR notification
+      # ※ 既存実装を想定（SlackユーザーID解決など）
+      # REVIEWER_SLACK_MENTIONS / SLACK_USER_IDS が
+      # すでに env に入っている前提
+      - name: Build Slack payload (PR Created)
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          MENTION=""
-          if [ -n "${{ steps.user.outputs.slack_user }}" ]; then
-            MENTION="<@${{ steps.user.outputs.slack_user }}>"
-          fi
+          payload=$(jq -n \
+            --arg reviewer_mentions "${REVIEWER_SLACK_MENTIONS:-レビュワー未指定}" \
+            --arg title "${{ github.event.pull_request.title || 'タイトル' }}" \
+            --arg author_slack "<@${SLACK_USER_IDS:-}>" \
+            --arg pr_url "${{ github.event.pull_request.html_url || '' }}" \
+            --arg pr_number "${{ github.event.pull_request.number || '9999' }}" \
+            --arg body "${{ github.event.pull_request.body || '' }}" \
+            --arg date_time "${date_time}" \
+            '
+            {
+              "attachments": [
+                {
+                  "color": "e82a87",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": "\($reviewer_mentions)\nプルリクエストを作成しました！"
+                      }
+                    },
+                    {
+                      "type": "header",
+                      "text": {
+                        "type": "plain_text",
+                        "text": \($title)
+                      }
+                    },
+                    {
+                      "type": "section",
+                      "fields": [
+                        { "type": "mrkdwn", "text": "*作成者*" },
+                        { "type": "mrkdwn", "text": "*PR番号*" },
+                        { "type": "mrkdwn", "text": \($author_slack) },
+                        { "type": "mrkdwn", "text": "<\($pr_url)|#\($pr_number)>" }
+                      ]
+                    },
+                    {
+                      "type": "section",
+                      "text": {
+                        "type": "mrkdwn",
+                        "text": \($body)
+                      }
+                    },
+                    {
+                      "type": "context",
+                      "elements": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "作成日：\($date_time)"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "actions",
+                      "elements": [
+                        {
+                          "type": "button",
+                          "text": {
+                            "type": "plain_text",
+                            "text": "プルリクエストを開く",
+                            "emoji": true
+                          },
+                          "url": \($pr_url),
+                          "style": "primary"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }'
+          )
 
-          curl -X POST -H 'Content-type: application/json' \
-          --data "{
-            \"text\": \"📢 *New Pull Request*\\n\
-            *Repo:* ${{ inputs.repo }}\\n\
-            *Title:* <${{ inputs.pr_url }}|${{ inputs.pr_title }}>\\n\
-            *Author:* ${{ inputs.author }} $MENTION\"
-          }" \
-          $SLACK_WEBHOOK_URL
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -d "$payload" \
+            "$SLACK_WEBHOOK_URL"

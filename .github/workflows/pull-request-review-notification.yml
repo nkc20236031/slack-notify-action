@@ -65,8 +65,8 @@ jobs:
             --arg title "${{ inputs.pr_title }}" \
             --arg pr_url "${{ inputs.pr_url }}" \
             --arg pr_number "${{ inputs.pr_number }}" \
-            --arg reviewer "$reviewer_slack" \
-            --arg reviewee "$reviewee_slack" \
+            --arg reviewer "${{ env.reviewer_slack }}" \
+            --arg reviewee "${{ env.reviewee_slack }}" \
             --arg state "${{ inputs.review_state }}" \
             --arg body "${{ inputs.review_body || '' }}" \
             --arg date_time "${{ env.date_time }}" \
@@ -86,7 +86,7 @@ jobs:
                     type: "section",
                     fields: [
                       { type: "mrkdwn", text: "*レビュワー*" },
-                      { type: "mrkdwn", text: "*レビューイ*" },
+                      { type: "mrkdwn", text: "*レビュイー*" },
                       { type: "mrkdwn", text: $reviewer },
                       { type: "mrkdwn", text: $reviewee }
                     ]
@@ -112,7 +112,7 @@ jobs:
                     elements: [
                       {
                         type: "mrkdwn",
-                        text: ("作成日：" + $date_time)
+                        text: ("作成日:" + $date_time)
                       }
                     ]
                   }
@@ -135,5 +135,3 @@ jobs:
             -H "Content-Type: application/json" \
             -d "$payload" \
             "$SLACK_WEBHOOK_URL"
-
-

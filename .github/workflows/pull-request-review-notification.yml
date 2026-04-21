@@ -145,6 +145,21 @@ jobs:
                         text: ("作成日:" + $date_time)
                       }
                     ]
+                  },
+                  {
+                    type: "actions",
+                    elements: [
+                      {
+                        type: "button",
+                        text: {
+                          type: "plain_text",
+                          text: "レビューコメントを開く",
+                          emoji: true
+                        },
+                        url: ($pr_url + "#pullrequestreview"),
+                        style: "primary"
+                      }
+                    ]
                   }
                 ]
               }

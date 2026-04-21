@@ -33,12 +33,20 @@ jobs:
 
       - name: Convert GitHub user to Slack mention
         id: usermap
-        env:
-          SLACK_USER_MAP_JSON: ${{ secrets.SLACK_USER_MAP_JSON }}
         run: |
-          slack_id=$(jq -n --arg u "${{ inputs.author }}" '(env.SLACK_USER_MAP_JSON | if . == "" then "{}" else . end | fromjson)? | .[$u] // empty')
+          # Use jq to read directly from github context and handle any JSON parsing issues safely
+          map_json='${{ secrets.SLACK_USER_MAP_JSON }}'
+          
+          if [ -z "$map_json" ]; then
+            echo "{}" > usermap.json
+          else
+            # Try to save the JSON, but catch structure issues
+            echo "$map_json" > usermap.json || echo "{}" > usermap.json
+          fi
 
-          if [ -n "$slack_id" ]; then
+          slack_id=$(jq -r --arg u "${{ inputs.author }}" 'if type == "object" then .[$u] // empty else empty end' usermap.json)
+
+          if [ -n "$slack_id" ] && [ "$slack_id" != "null" ]; then
             echo "author_slack=<@$slack_id>" >> $GITHUB_ENV
           else
             echo "author_slack=${{ inputs.author }}" >> $GITHUB_ENV
@@ -61,7 +69,7 @@ jobs:
                     type: "section",
                     text: {
                       type: "mrkdwn",
-                      text: ($author + "\nプルリクエストを作成しました！!!")
+                      text: ($author + "\nプルリクエストを作成しました!")
                     }
                   },
                   {

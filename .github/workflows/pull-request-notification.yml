@@ -33,8 +33,10 @@ jobs:
 
       - name: Convert GitHub user to Slack mention
         id: usermap
+        env:
+          SLACK_USER_MAP_JSON: ${{ secrets.SLACK_USER_MAP_JSON }}
         run: |
-          slack_id=$(echo '${{ secrets.SLACK_USER_MAP_JSON }}' \
+          slack_id=$(echo "${SLACK_USER_MAP_JSON:-{}}" \
             | jq -r --arg user "${{ inputs.author }}" '.[$user] // empty')
 
           if [ -n "$slack_id" ]; then

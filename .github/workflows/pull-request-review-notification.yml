@@ -72,15 +72,15 @@ jobs:
           case "$state" in
             commented)
               echo "review_color=#ffffff" >> $GITHUB_ENV
-              echo "review_label=⚪commented" >> $GITHUB_ENV
+              echo "review_label=⚪ commented" >> $GITHUB_ENV
               ;;
             approved)
               echo "review_color=#00ff00" >> $GITHUB_ENV
-              echo "review_label=✅approved" >> $GITHUB_ENV
+              echo "review_label=✅ approved" >> $GITHUB_ENV
               ;;
             changes_requested)
               echo "review_color=#ff0000" >> $GITHUB_ENV
-              echo "review_label=❌Request Changes" >> $GITHUB_ENV
+              echo "review_label=❌ Request Changes" >> $GITHUB_ENV
               ;;
             *)
               echo "review_color=#dddddd" >> $GITHUB_ENV

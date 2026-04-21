@@ -36,8 +36,7 @@ jobs:
         env:
           SLACK_USER_MAP_JSON: ${{ secrets.SLACK_USER_MAP_JSON }}
         run: |
-          slack_id=$(echo "${SLACK_USER_MAP_JSON:-{}}" \
-            | jq -r --arg user "${{ inputs.author }}" '.[$user] // empty')
+          slack_id=$(jq -n --arg u "${{ inputs.author }}" '(env.SLACK_USER_MAP_JSON | if . == "" then "{}" else . end | fromjson)? | .[$u] // empty')
 
           if [ -n "$slack_id" ]; then
             echo "author_slack=<@$slack_id>" >> $GITHUB_ENV

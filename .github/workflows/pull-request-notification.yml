@@ -61,7 +61,7 @@ jobs:
                     type: "section",
                     text: {
                       type: "mrkdwn",
-                      text: ($author + "\nプルリクエストを作成しました!")
+                      text: ($author + "\nプルリクエストを作成しました！!!")
                     }
                   },
                   {

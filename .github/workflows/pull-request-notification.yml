@@ -63,7 +63,7 @@ jobs:
           '{
             attachments: [
               {
-                color: "e82a87",
+                color: "#e82a87",
                 blocks: [
                   {
                     type: "section",

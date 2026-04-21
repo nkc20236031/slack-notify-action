@@ -28,7 +28,7 @@ on:
       SLACK_WEBHOOK_URL:
         required: true
       SLACK_USER_MAP_JSON:
-        required: true
+        required: false
 
 jobs:
   notify:
@@ -42,13 +42,11 @@ jobs:
 
       - name: Convert GitHub users to Slack mentions
         run: |
-          # Use jq to read directly from github context and handle any JSON parsing issues safely
           map_json='${{ secrets.SLACK_USER_MAP_JSON }}'
           
           if [ -z "$map_json" ]; then
             echo "{}" > usermap.json
           else
-            # Try to save the JSON, but catch structure issues
             echo "$map_json" > usermap.json || echo "{}" > usermap.json
           fi
 
@@ -67,6 +65,29 @@ jobs:
             echo "reviewee_slack=${{ inputs.reviewee_github }}" >> $GITHUB_ENV
           fi
 
+      # 状態別にカラーと表示名を設定
+      - name: Set review state style
+        run: |
+          state="${{ inputs.review_state }}"
+          case "$state" in
+            commented)
+              echo "review_color=#ffffff" >> $GITHUB_ENV
+              echo "review_label=⚪commented" >> $GITHUB_ENV
+              ;;
+            approved)
+              echo "review_color=#00ff00" >> $GITHUB_ENV
+              echo "review_label=✅approved" >> $GITHUB_ENV
+              ;;
+            changes_requested)
+              echo "review_color=#ff0000" >> $GITHUB_ENV
+              echo "review_label=❌Request Changes" >> $GITHUB_ENV
+              ;;
+            *)
+              echo "review_color=#dddddd" >> $GITHUB_ENV
+              echo "review_label=$state" >> $GITHUB_ENV
+              ;;
+          esac
+
       - name: Build Slack payload (PR Review)
         run: |
           payload=$(jq -n \
@@ -75,13 +96,14 @@ jobs:
             --arg pr_number "${{ inputs.pr_number }}" \
             --arg reviewer "${{ env.reviewer_slack }}" \
             --arg reviewee "${{ env.reviewee_slack }}" \
-            --arg state "${{ inputs.review_state }}" \
+            --arg state "${{ env.review_label }}" \
+            --arg color "${{ env.review_color }}" \
             --arg body "${{ inputs.review_body || '' }}" \
             --arg date_time "${{ env.date_time }}" \
           '{
             attachments: [
               {
-                color: "#e82a87",
+                color: $color,
                 blocks: [
                   {
                     type: "header",
@@ -104,7 +126,7 @@ jobs:
                     fields: [
                       { type: "mrkdwn", text: "*状態*" },
                       { type: "mrkdwn", text: "*PR番号*" },
-                      { type: "plain_text", text: $state, emoji: true },
+                      { type: "mrkdwn", text: $state },
                       { type: "mrkdwn", text: "<\($pr_url)|#\($pr_number)>" }
                     ]
                   },

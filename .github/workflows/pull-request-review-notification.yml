@@ -41,11 +41,11 @@ jobs:
           echo "date_time=$(date '+%Y-%m-%d %H:%M:%S JST')" >> $GITHUB_ENV
 
       - name: Convert GitHub users to Slack mentions
+        env:
+          SLACK_USER_MAP_JSON: ${{ secrets.SLACK_USER_MAP_JSON }}
         run: |
-          map='${{ secrets.SLACK_USER_MAP_JSON }}'
-
-          reviewer=$(echo "$map" | jq -r --arg u "${{ inputs.reviewer_github }}" '.[$u] // empty')
-          reviewee=$(echo "$map" | jq -r --arg u "${{ inputs.reviewee_github }}" '.[$u] // empty')
+          reviewer=$(echo "${SLACK_USER_MAP_JSON:-{}}" | jq -r --arg u "${{ inputs.reviewer_github }}" '.[$u] // empty')
+          reviewee=$(echo "${SLACK_USER_MAP_JSON:-{}}" | jq -r --arg u "${{ inputs.reviewee_github }}" '.[$u] // empty')
 
           if [ -n "$reviewer" ]; then
             echo "reviewer_slack=<@$reviewer>" >> $GITHUB_ENV

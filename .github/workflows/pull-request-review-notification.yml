@@ -24,6 +24,9 @@ on:
       review_body:
         required: false
         type: string
+      review_url:
+        required: false
+        type: string
     secrets:
       SLACK_WEBHOOK_URL:
         required: true
@@ -156,7 +159,7 @@ jobs:
                           text: "レビューコメントを開く",
                           emoji: true
                         },
-                        url: ($pr_url + "#pullrequestreview"),
+                        url: $review_url,
                         style: "primary"
                       }
                     ]

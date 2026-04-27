@@ -118,10 +118,10 @@ jobs:
                   {
                     type: "section",
                     fields: [
+                      { type: "mrkdwn", text: "*レビューイ*" },
                       { type: "mrkdwn", text: "*レビュワー*" },
-                      { type: "mrkdwn", text: "*レビュイー*" },
-                      { type: "mrkdwn", text: $reviewer },
-                      { type: "mrkdwn", text: $reviewee }
+                      { type: "mrkdwn", text: $reviewee },
+                      { type: "mrkdwn", text: $reviewer }
                     ]
                   },
                   {
